@@ -67,7 +67,7 @@ async function executeSwap(base64Image) {
         const currentSlide = context.presentation.getSelectedSlides().getItemAt(0);
         
         // This is usually where PowerPoint gets picky about SVGs
-        const newIcon = currentSlide.shapes.addImage(base64Image);
+       const newIcon = currentSlide.shapes.addPicture(base64Image);
 
         newIcon.top = pTop;
         newIcon.left = pLeft;
