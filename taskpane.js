@@ -16,8 +16,8 @@ Office.onReady((info) => {
 // 2. THE NEW AUTO-LOADER ENGINE
 async function loadIconsFromGitHub() {
     // CHANGE THESE TWO VARIABLES TO MATCH YOUR GITHUB INFO
-    const githubUser = "YOUR_GITHUB_USERNAME";
-    const githubRepo = "YOUR_REPO_NAME"; 
+    const githubUser = "PradeepShan";
+    const githubRepo = "brand-icons-panel"; 
     
     const apiUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/assets`;
     logMessage("Scanning folder: " + apiUrl);
