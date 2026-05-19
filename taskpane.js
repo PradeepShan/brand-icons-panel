@@ -1,4 +1,3 @@
-// Function to print messages to our HTML screen
 function logMessage(msg) {
     const screen = document.getElementById('debugScreen');
     if (screen) {
@@ -41,47 +40,57 @@ async function processIconClick(svgUrl) {
 
 async function executeSwap(base64Image) {
     logMessage("Starting slide swap process...");
-    await PowerPoint.run(async (context) => {
+    
+    let pTop, pLeft, pWidth, pHeight;
+
+    try {
+        // STEP 1: Read the old icon's DNA and delete it
+        await PowerPoint.run(async (context) => {
+            const selectedShapes = context.presentation.getSelectedShapes();
+            selectedShapes.load("items");
+            await context.sync();
+
+            if (selectedShapes.items.length === 0) {
+                throw new Error("No shape selected on the slide!");
+            }
+
+            logMessage("Shape found. Reading dimensions...");
+            const oldIcon = selectedShapes.items[0];
+            oldIcon.load(["top", "left", "width", "height"]);
+            await context.sync();
+
+            pTop = oldIcon.top;
+            pLeft = oldIcon.left;
+            pWidth = oldIcon.width;
+            pHeight = oldIcon.height;
+
+            logMessage("Deleting old icon...");
+            oldIcon.delete();
+            await context.sync();
+        });
+
+        // STEP 2: Use the bulletproof Common API to inject the new icon
+        logMessage("Injecting new icon via Common API...");
         
-        const selectedShapes = context.presentation.getSelectedShapes();
-        selectedShapes.load("items");
-        await context.sync();
+        Office.context.document.setSelectedDataAsync(
+            base64Image,
+            {
+                coercionType: Office.CoercionType.Image,
+                imageLeft: pLeft,
+                imageTop: pTop,
+                imageWidth: pWidth,
+                imageHeight: pHeight
+            },
+            function (asyncResult) {
+                if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                    logMessage("API ERROR: " + asyncResult.error.message);
+                } else {
+                    logMessage("SUCCESS: Swap complete!");
+                }
+            }
+        );
 
-        if (selectedShapes.items.length === 0) {
-            logMessage("ABORT: No shape selected on the slide!");
-            return;
-        }
-
-        logMessage("Shape found. Reading dimensions...");
-        const oldIcon = selectedShapes.items[0];
-        oldIcon.load(["top", "left", "width", "height", "rotation"]);
-        await context.sync();
-
-        const pTop = oldIcon.top;
-        const pLeft = oldIcon.left;
-        const pWidth = oldIcon.width;
-        const pHeight = oldIcon.height;
-        const pRotation = oldIcon.rotation;
-
-        logMessage("Injecting new icon...");
-        const currentSlide = context.presentation.getSelectedSlides().getItemAt(0);
-        
-        // This is usually where PowerPoint gets picky about SVGs
-       const newIcon = currentSlide.shapes.addPicture(base64Image);
-
-        newIcon.top = pTop;
-        newIcon.left = pLeft;
-        newIcon.width = pWidth;
-        newIcon.height = pHeight;
-        newIcon.rotation = pRotation;
-
-        logMessage("Deleting old icon...");
-        oldIcon.delete();
-
-        await context.sync();
-        logMessage("SUCCESS: Swap complete!");
-        
-    }).catch(function (error) {
-        logMessage("API ERROR: " + error);
-    });
+    } catch (error) {
+        logMessage("ERROR: " + error.message);
+    }
 }
