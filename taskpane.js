@@ -5,18 +5,59 @@ function logMessage(msg) {
     }
 }
 
+// 1. Run this immediately when PowerPoint connects
 Office.onReady((info) => {
     if (info.host === Office.HostType.PowerPoint) {
         logMessage("PowerPoint connected successfully.");
+        loadIconsFromGitHub();
     }
 });
 
+// 2. THE NEW AUTO-LOADER ENGINE
+async function loadIconsFromGitHub() {
+    // CHANGE THESE TWO VARIABLES TO MATCH YOUR GITHUB INFO
+    const githubUser = "YOUR_GITHUB_USERNAME";
+    const githubRepo = "YOUR_REPO_NAME"; 
+    
+    const apiUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/assets`;
+    logMessage("Scanning folder: " + apiUrl);
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Could not read folder. Is the repo public?");
+        
+        const files = await response.json();
+        const grid = document.getElementById('iconGrid');
+        grid.innerHTML = ""; // Clear the "Loading..." text
+        
+        // Loop through the folder and build the HTML for each SVG
+        files.forEach(file => {
+            if (file.name.endsWith('.svg') || file.name.endsWith('.png')) {
+                // file.download_url gives us the direct link to the raw image file
+                const html = `
+                    <div class="icon-card" onclick="processIconClick('${file.download_url}')">
+                        <img src="${file.download_url}" alt="${file.name}">
+                        <div class="icon-name">${file.name.replace('.svg', '')}</div>
+                    </div>
+                `;
+                grid.innerHTML += html;
+            }
+        });
+        
+        logMessage(`Successfully loaded ${files.length} files.`);
+        
+    } catch (error) {
+        logMessage("Auto-load Error: " + error.message);
+    }
+}
+
+// 3. THE SWAP ENGINE (Unchanged, just uses the new URL)
 async function processIconClick(svgUrl) {
     logMessage("Fetching: " + svgUrl);
     try {
         const response = await fetch(svgUrl);
         if (!response.ok) {
-            logMessage("ERROR: GitHub couldn't find " + svgUrl);
+            logMessage("ERROR: Couldn't download image.");
             return;
         }
         
@@ -25,7 +66,6 @@ async function processIconClick(svgUrl) {
         
         reader.onloadend = async function() {
             try {
-                logMessage("SVG downloaded. Converting to Base64...");
                 const base64String = reader.result.split(',')[1];
                 await executeSwap(base64String);
             } catch (err) {
@@ -40,11 +80,9 @@ async function processIconClick(svgUrl) {
 
 async function executeSwap(base64Image) {
     logMessage("Starting slide swap process...");
-    
     let pTop, pLeft, pWidth, pHeight;
 
     try {
-        // STEP 1: Read the old icon's DNA and delete it
         await PowerPoint.run(async (context) => {
             const selectedShapes = context.presentation.getSelectedShapes();
             selectedShapes.load("items");
@@ -54,7 +92,6 @@ async function executeSwap(base64Image) {
                 throw new Error("No shape selected on the slide!");
             }
 
-            logMessage("Shape found. Reading dimensions...");
             const oldIcon = selectedShapes.items[0];
             oldIcon.load(["top", "left", "width", "height"]);
             await context.sync();
@@ -64,23 +101,13 @@ async function executeSwap(base64Image) {
             pWidth = oldIcon.width;
             pHeight = oldIcon.height;
 
-            logMessage("Deleting old icon...");
             oldIcon.delete();
             await context.sync();
         });
-
-        // STEP 2: Use the bulletproof Common API to inject the new icon
-        logMessage("Injecting new icon via Common API...");
         
         Office.context.document.setSelectedDataAsync(
             base64Image,
-            {
-                coercionType: Office.CoercionType.Image,
-                imageLeft: pLeft,
-                imageTop: pTop,
-                imageWidth: pWidth,
-                imageHeight: pHeight
-            },
+            { coercionType: Office.CoercionType.Image, imageLeft: pLeft, imageTop: pTop, imageWidth: pWidth, imageHeight: pHeight },
             function (asyncResult) {
                 if (asyncResult.status === Office.AsyncResultStatus.Failed) {
                     logMessage("API ERROR: " + asyncResult.error.message);
@@ -89,7 +116,6 @@ async function executeSwap(base64Image) {
                 }
             }
         );
-
     } catch (error) {
         logMessage("ERROR: " + error.message);
     }
