@@ -4,15 +4,15 @@
     <meta charset="UTF-8" />
     <title>Brand Icons</title>
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-    <!-- Bumped version to v=3 to bypass cache again -->
-    <script src="taskpane.js?v=4"></script>
+    <!-- Bumped version to v=5 to bust the cache -->
+    <script src="taskpane.js?v=5"></script>
     <style>
         body { font-family: -apple-system, sans-serif; padding: 15px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .icon-card { border: 1px solid #ddd; border-radius: 6px; padding: 10px; cursor: pointer; text-align: center; }
         .icon-card:hover { background: #f3f2f1; border-color: #0078d4; }
         .icon-card img { max-width: 100%; height: auto; pointer-events: none; }
-        /* The new on-screen terminal */
+        .icon-name { font-size: 10px; color: #555; margin-top: 5px; word-wrap: break-word; }
         #debugScreen { margin-top: 20px; padding: 10px; background: #1e1e1e; color: #4af626; font-family: monospace; font-size: 11px; border-radius: 5px; min-height: 60px; word-wrap: break-word; }
     </style>
 </head>
@@ -20,18 +20,12 @@
     <h3>Brand Icons</h3>
     <p style="font-size: 12px;">Select an icon on the slide, then click below to swap.</p>
     
-    <button onclick="logMessage('Test button clicked! JS is alive.')" style="margin-bottom: 15px;">Test Button</button>
-    
-    <div class="grid">
-        <div class="icon-card" onclick="processIconClick('assets/home.svg')">
-            <img src="assets/home.svg" alt="Home">
-        </div>
-        <div class="icon-card" onclick="processIconClick('assets/user.svg')">
-            <img src="assets/user.svg" alt="User">
-        </div>
+    <!-- The empty grid that JavaScript will automatically fill -->
+    <div class="grid" id="iconGrid">
+        <p style="font-size: 12px; color: #888;">Loading icons...</p>
     </div>
 
-    <!-- This is where our code will print its status -->
+    <!-- The Debug Screen -->
     <div id="debugScreen">System ready...</div>
 </body>
 </html>
